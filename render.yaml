@@ -2,6 +2,7 @@ services:
   - type: web
     name: health-misinfo-tracker
     runtime: python
+    plan: free
     buildCommand: bash build.sh
     startCommand: cd backend && gunicorn backend.wsgi:application
     envVars:
@@ -18,5 +19,6 @@ services:
 
 databases:
   - name: health-misinfo-tracker-db
+    plan: free
     databaseName: health_misinfo_tracker
     user: health_misinfo_tracker
