@@ -1,0 +1,51 @@
+{% extends "nav.html" %}
+{% block content %}
+
+{% load static %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-xl-6">
+                <div class="auth-card">
+                    <div class="row g-0">
+                        <div class="col-md-6">
+                            <div class="auth-content">
+                                <h3 class="mb-4">Create Account</h3>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <div class="mb-4">
+                                        <input type="text" class="form-control" name="uname" placeholder="Username" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <input type="email" class="form-control" name="email" placeholder="Email" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <input type="password" class="form-control" name="pwd" placeholder="Password" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <input type="password" class="form-control" name="cpwd" placeholder="Confirm Password" required>
+                                    </div>
+                                    <button class="btn btn-primary w-100" type="submit">Sign Up</button>
+                                </form>
+                                <div class="mt-4 text-center">
+                                    <p class="text-muted mb-0">Already have an account? <a href="{% url 'login' %}" class="text-accent">Login</a></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 d-none d-md-block">
+                            <div class="auth-image">
+                                <img src="{% static 'images/register-login.avif' %}" alt="Health Tracker" class="img-fluid h-100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for message in messages %}
+<script>alert("{{ message }}")</script>
+{% endfor %}
+
+{% endblock %}

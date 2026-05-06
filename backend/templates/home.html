@@ -1,0 +1,74 @@
+{% extends "nav.html" %}
+{% block content %}
+
+{% load static %}
+<div class="hero-section">
+    <div class="container">
+        <div class="row align-items-center min-vh-85 mt-0">
+            <div class="col-lg-6 mb-5 mb-lg-0">
+                <div class="hero-content">
+                    <h1 class="hero-title mb-4">
+                        Health Misinformation<br>
+                        <span class="gradient-text">Trend Tracker</span>
+                    </h1>
+                    <p class="hero-subtitle mb-5">
+                        Analyze COVID-related tweets and messages. Classify them as 
+                        <span class="text-success" style="color: darkgreen;">real</span> or 
+                        <span class="text-danger">fake</span>. Track hashtag trends over time.
+                    </p>
+                    <div class="hero-actions">
+                        {% if user.is_authenticated %}
+                            <!-- ✅ USER LOGGED IN: Direct to predict page -->
+                            <a href="{% url 'predict-page' %}" class="btn btn-primary btn-lg me-3 mb-3 mb-md-0">
+                                🚀 Start Predicting
+                            </a>
+                        {% else %}
+                            <!-- ❌ USER NOT LOGGED IN: Redirect to login -->
+                            <a href="{% url 'login' %}" class="btn btn-primary btn-lg me-3 mb-3 mb-md-0">
+                                🔐 Login to Start Predicting
+                            </a>
+                        {% endif %}
+                        <a href="#features" class="btn btn-outline-light btn-lg" style="background-color: black;">
+                            Learn More
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-image">
+                    <img src="{% static 'images/banner-img.jpg' %}" alt="Health Tracker Dashboard" class="img-fluid hero-img">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="features-section" id="features">
+    <div class="container mb-5">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h5 class="mt-3">Real-time Analysis</h5>
+                    <p>Instant classification of tweets with confidence scores.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h5 class="mt-3">Trend Tracking</h5>
+                    <p>Monitor hashtag patterns and misinformation spread.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h5 class="mt-3">Fast & Accurate</h5>
+                    <p>AI-powered detection with daily statistics.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

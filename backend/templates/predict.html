@@ -1,0 +1,294 @@
+{% extends "nav.html" %}
+{% block content %}
+
+<div class="predict-section">
+    <div class="container">
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="stats-card p-3 h-100">
+                    <div class="text-muted small">Total checks</div>
+                    <h3 class="mb-0">{{ summary.total }}</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card p-3 h-100">
+                    <div class="text-muted small">Real</div>
+                    <h3 class="mb-0 text-success">{{ summary.real }}</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card p-3 h-100">
+                    <div class="text-muted small">Fake</div>
+                    <h3 class="mb-0 text-danger">{{ summary.fake }}</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card p-3 h-100">
+                    <div class="text-muted small">Fake rate</div>
+                    <h3 class="mb-0">{{ summary.fake_percent }}%</h3>
+                </div>
+            </div>
+        </div>
+
+        {% if not model_loaded %}
+            <div class="alert alert-danger">
+                Prediction model is not loaded.
+                {% if model_load_error %}<span class="d-block small mt-1">{{ model_load_error }}</span>{% endif %}
+            </div>
+        {% endif %}
+
+        {% for message in messages %}
+            <div class="alert alert-warning">{{ message }}</div>
+        {% endfor %}
+
+        <div class="row g-4 mb-5">
+            <div class="col-lg-6 col-md-6">
+                <div class="predict-card">
+                    <div class="card-header">
+                        <h4>Check a Health Claim</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-4">
+                                <textarea class="form-control" name="text" rows="6"
+                                          placeholder="Paste a tweet, health claim, or message here..."
+                                          required>{{ result.text|default_if_none:'' }}</textarea>
+                            </div>
+                            <button class="btn btn-primary w-100" type="submit" {% if not model_loaded %}disabled{% endif %}>
+                                Predict Truthfulness
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 col-md-6">
+                <div class="result-card">
+                    <div class="card-header">
+                        <h5>Prediction Result</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if result %}
+                            <div class="result-badge">
+                                <span class="badge-lg {% if result.is_fake %}bg-danger{% else %}result-label-REAL{% endif %}">
+                                    {{ result.label|upper }}
+                                </span>
+                            </div>
+
+                            <div class="confidence-display mt-3">
+                                <span class="confidence-badge">{{ result.confidence_percent }}% confidence</span>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill {% if result.confidence > 0.7 %}high{% elif result.confidence > 0.5 %}medium{% else %}low{% endif %}"
+                                         style="width: {{ result.confidence_percent }}%;">
+                                        <span>{{ result.confidence_percent }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mt-3">
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <div class="text-muted small">Real probability</div>
+                                        <strong>{{ result.p_real }}%</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <div class="text-muted small">Fake probability</div>
+                                        <strong>{{ result.p_fake }}%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if result.hashtags %}
+                                <div class="mt-3">
+                                    <div class="text-muted small mb-1">Extracted hashtags</div>
+                                    {% for tag in result.hashtags %}
+                                        <span class="badge text-bg-light me-1">{{ tag }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <div class="threshold-info text-muted small mt-3">
+                                Threshold: {{ result.threshold|floatformat:3 }}
+                                {% if result.overridden_by_debunk %}
+                                    <span class="d-block">Debunking language detected, so the result was treated as real.</span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="no-result">
+                                <div class="empty-state">
+                                    <h6 class="mt-3">No prediction yet</h6>
+                                    <p class="text-muted">Enter a claim on the left and run the prediction.</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-lg-6 col-md-6">
+                <div class="stats-card">
+                    <div class="card-header">
+                        <h5>Last 7 Days: Real vs Fake</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <canvas id="dailyChart" class="chart-canvas"></canvas>
+                        <div class="table-responsive px-3 pb-3">
+                            <table class="table table-sm table-dark table-bordered mb-0 text-center">
+                                <thead>
+                                    <tr>
+                                        <th>Day</th>
+                                        <th>Real</th>
+                                        <th>Fake</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for day, real_count, fake_count in daily_stats_rows %}
+                                        <tr>
+                                            <td>{{ day }}</td>
+                                            <td>{{ real_count }}</td>
+                                            <td>{{ fake_count }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6">
+                <div class="stats-card">
+                    <div class="card-header">
+                        <h5>Today's Fake Hashtags</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <canvas id="hashtagChart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-card mb-5">
+            <div class="card-header">
+                <h5>Recent Prediction History</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_predictions %}
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Result</th>
+                                    <th>Confidence</th>
+                                    <th>Hashtags</th>
+                                    <th>Text</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in recent_predictions %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge {% if item.is_fake %}text-bg-danger{% else %}text-bg-success{% endif %}">
+                                                {{ item.label|upper }}
+                                            </span>
+                                        </td>
+                                        <td>{{ item.confidence|floatformat:2 }}</td>
+                                        <td>{{ item.hashtags|default:"-" }}</td>
+                                        <td>{{ item.text|truncatechars:80 }}</td>
+                                        <td>{{ item.created_at|date:"M d, H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Your prediction history will appear here.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script id="daily-chart-data" type="application/json">
+{{ daily_stats_json|safe }}
+</script>
+
+<script id="hashtag-chart-data" type="application/json">
+{{ today_fake_hashtags_json|safe }}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dailyData = JSON.parse(document.getElementById('daily-chart-data').textContent);
+    const hashtagData = JSON.parse(document.getElementById('hashtag-chart-data').textContent);
+
+    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: dailyData.labels,
+            datasets: [{
+                label: `Real (${dailyData.real.reduce((a, b) => a + b, 0)})`,
+                data: dailyData.real,
+                borderColor: 'rgba(16, 185, 129, 1)',
+                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                borderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                tension: 0.3,
+                fill: false
+            }, {
+                label: `Fake (${dailyData.fake.reduce((a, b) => a + b, 0)})`,
+                data: dailyData.fake,
+                borderColor: 'rgba(239, 68, 68, 1)',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                borderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+
+    const hashtagCtx = document.getElementById('hashtagChart').getContext('2d');
+    new Chart(hashtagCtx, {
+        type: 'doughnut',
+        data: {
+            labels: hashtagData.labels.length ? hashtagData.labels : ['No fake hashtags today'],
+            datasets: [{
+                data: hashtagData.data.length ? hashtagData.data : [1],
+                backgroundColor: [
+                    'rgba(99, 102, 241, 0.8)', 'rgba(236, 72, 153, 0.8)',
+                    'rgba(239, 68, 68, 0.8)', 'rgba(16, 185, 129, 0.8)',
+                    'rgba(245, 158, 11, 0.8)', 'rgba(59, 130, 246, 0.8)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } },
+            cutout: '60%'
+        }
+    });
+});
+</script>
+
+{% endblock %}
